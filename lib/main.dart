@@ -1,4 +1,6 @@
 import 'dart:io';
+
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 //import 'api/api_pexels.dart'; // File fungsi fetchVideos
@@ -6,8 +8,21 @@ import '../api/api_pexels.dart';
 import '../model/video_item.dart';
 import '../widget/video_player_widget.dart';
 
+import 'login_page.dart';
 
-void main() {
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(MoodSocialApp());
 }
 
@@ -17,8 +32,28 @@ class MoodSocialApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mood Support App',
       theme: ThemeData(useMaterial3: true),
-      home: HomePage(),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(), // mendeteksi perubahan login
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        } else if (snapshot.hasData) {
+          return HomePage(); // jika sudah login, masuk ke halaman utama
+        } else {
+          return LoginPage(); // jika belum login
+        }
+      },
     );
   }
 }
@@ -212,13 +247,74 @@ class _UploadImagePageState extends State<UploadImagePage> {
   }
 }
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
+  @override
+  _NotificationPageState createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends State<NotificationPage> {
+  List<String> _imageUrls = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchImages();
+  }
+
+  Future<void> fetchImages() async {
+    try {
+      final response = await http.get(Uri.parse('https://picsum.photos/v2/list?page=1&limit=90'));
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          _imageUrls = data.map<String>((item) {
+            return 'https://picsum.photos/id/${item['id']}/200/200'; // Pakai ukuran aman
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching images: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFC9D6E4),
-      appBar: AppBar(title: Text("Notifikasi", style: TextStyle(color: Colors.black))),
-      body: Center(child: Text("Belum ada notifikasi")),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text("Explorer", style: TextStyle(color: Colors.black)),
+        centerTitle: true,
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.builder(
+                itemCount: _imageUrls.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+                itemBuilder: (context, index) {
+                  return Container(
+                    color: Colors.grey[300],
+                    child: Image.network(
+                      _imageUrls[index],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -230,6 +326,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
+  List<String> _imageUrls = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchImages();
+  }
 
   Future<void> _pickProfileImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -240,10 +344,32 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> fetchImages() async {
+    try {
+      final response = await http.get(Uri.parse('https://picsum.photos/v2/list?page=1&limit=12'));
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          // Gunakan resolusi tetap 200x200 menggunakan ID gambar
+          _imageUrls = data.map<String>((item) {
+            final id = item['id'].toString();
+            return 'https://picsum.photos/id/$id/200/200';
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching images: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _openSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SettingsPage()),
+      MaterialPageRoute(builder: (context) => Placeholder()), // Ganti dengan SettingsPage()
     );
   }
 
@@ -312,17 +438,28 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               TextButton(onPressed: () {}, child: Text("+ Tambahkan Bio")),
               Divider(height: 30),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-                physics: NeverScrollableScrollPhysics(),
-                children: List.generate(6, (index) => Container(
-                  color: Colors.white,
-                  child: Center(child: Icon(Icons.image, color: Colors.grey)),
-                )),
-              ),
+
+              // GridView untuk gambar dari API
+              _isLoading
+                  ? CircularProgressIndicator()
+                  : GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      crossAxisSpacing: 4,
+                      mainAxisSpacing: 4,
+                      physics: NeverScrollableScrollPhysics(),
+                      children: _imageUrls.map((url) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Icon(Icons.broken_image),
+                          ),
+                        );
+                      }).toList(),
+                    ),
             ],
           ),
         ),
