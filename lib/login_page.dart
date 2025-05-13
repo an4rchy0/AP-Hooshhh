@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'register_page.dart';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LoginPage extends StatefulWidget {
@@ -25,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text,
       );
       setState(() {
-        error = ''; // kosongkan error jika sukses
+        error = '';
       });
     } catch (e) {
       setState(() {
@@ -45,7 +44,8 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -53,7 +53,6 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
-
       setState(() {
         error = '';
       });
@@ -64,7 +63,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.symmetric(horizontal: 30),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFC9D6E4), Color(0xFF4B6B8B)],
+            colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 198, 210, 223)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -82,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                Image.asset('assets/LOGO.png', height: 100),
+                Image.asset('assets/images/LOGO.png', height: 100),
                 const SizedBox(height: 40),
                 TextField(
                   controller: emailController,
@@ -90,7 +88,9 @@ class _LoginPageState extends State<LoginPage> {
                     hintText: 'Email',
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -101,7 +101,9 @@ class _LoginPageState extends State<LoginPage> {
                     hintText: 'Password',
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -117,8 +119,13 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
-                    child: Text("Forgot Password?", style: TextStyle(color: Colors.grey[700])),
+                    onPressed: () {
+                      // Tambahkan navigasi ke halaman "Forgot Password" jika sudah dibuat
+                    },
+                    child: Text(
+                      "Forgot Password?",
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -127,20 +134,11 @@ class _LoginPageState extends State<LoginPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFA8BFFF),
                     minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text('Login'),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: signInWithGoogle,
-                  icon: const Icon(Icons.login, color: Colors.white),
-                  label: const Text('Login with Google'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton(
@@ -152,14 +150,20 @@ class _LoginPageState extends State<LoginPage> {
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text('Register'),
                 ),
                 if (error.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(error, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      error,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
               ],
             ),

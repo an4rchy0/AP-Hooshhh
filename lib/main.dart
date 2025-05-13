@@ -1,6 +1,5 @@
 import 'dart:io';
 
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 //import 'api/api_pexels.dart'; // File fungsi fetchVideos
@@ -9,6 +8,7 @@ import '../model/video_item.dart';
 import '../widget/video_player_widget.dart';
 
 import 'login_page.dart';
+import 'search_page.dart'; 
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -31,7 +31,7 @@ class MoodSocialApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Mood Support App',
-      theme: ThemeData(useMaterial3: true),
+      theme: ThemeData(useMaterial3: true, fontFamily: 'Chirp'),
       home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
@@ -101,11 +101,11 @@ class _HomePageState extends State<HomePage> {
         type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.message), label: ""),
           BottomNavigationBarItem(
             icon: Container(
               decoration: BoxDecoration(
-                color: Colors.blueAccent,
+                color: const Color.fromARGB(255, 104, 131, 179),
                 shape: BoxShape.circle,
               ),
               padding: EdgeInsets.all(10),
@@ -113,7 +113,7 @@ class _HomePageState extends State<HomePage> {
             ),
             label: "",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: ""),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
         ],
       ),
@@ -154,34 +154,173 @@ class DashboardPage extends StatelessWidget {
 }
 
 
-class TweetPage extends StatelessWidget {
+class TweetPage extends StatefulWidget {
+  @override
+  _TweetPageState createState() => _TweetPageState();
+}
+
+class _TweetPageState extends State<TweetPage> {
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, dynamic>> _posts = [];
+
+  void _submitPost() {
+    if (_controller.text.trim().isNotEmpty) {
+      setState(() {
+        _posts.insert(0, {
+          "username": "Anonymous",
+          "avatar": "assets/user1.png",
+          "time": "baru saja",
+          "content": _controller.text.trim(),
+          "likes": 0,
+          "comments": 0,
+          "commentList": [],
+        });
+        _controller.clear();
+      });
+    }
+  }
+
+  void _likePost(int index) {
+    setState(() {
+      _posts[index]["likes"]++;
+    });
+  }
+
+  void _commentPost(int index) {
+    setState(() {
+      _posts[index]["comments"]++;
+      _posts[index]["commentList"].add("Komentar dari user lain...");
+    });
+  }
+
+  Widget buildPost(Map<String, dynamic> post, int index) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(backgroundImage: AssetImage(post["avatar"])),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(post["username"],
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(post["time"],
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            Text(post["content"], style: TextStyle(fontSize: 15)),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.favorite, color: Colors.red),
+                  onPressed: () => _likePost(index),
+                ),
+                Text(post["likes"].toString()),
+                SizedBox(width: 16),
+                IconButton(
+                  icon: Icon(Icons.mode_comment_outlined,
+                      color: Colors.grey[700]),
+                  onPressed: () => _commentPost(index),
+                ),
+                Text(post["comments"].toString()),
+              ],
+            ),
+            if (post["commentList"].isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: post["commentList"]
+                    .map<Widget>((comment) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person,
+                                  size: 16, color: Colors.grey),
+                              SizedBox(width: 6),
+                              Expanded(child: Text(comment)),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFC9D6E4),
       appBar: AppBar(
-        title: Text("Tweet / Curhat", style: TextStyle(color: Colors.black)),
+        title: Text(
+          "Tweet / Curhat",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          children: List.generate(
-            5,
-                (index) => Card(
-              child: ListTile(
-                title: Text("Curhatan #\${index + 1}"),
-                subtitle: Text("Aku hari ini merasa..."),
+          children: [
+            TextField(
+              controller: _controller,
+              decoration: InputDecoration(
+                hintText: "Curhatin aja di sini...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    Icons.send,
+                    color: Color.fromARGB(255, 104, 131, 179),
+                  ),
+                  onPressed: _submitPost,
+                ),
               ),
+              maxLines: 3,
             ),
-          ),
+            SizedBox(height: 16),
+            Expanded(
+              child: _posts.isEmpty
+                  ? Center(
+                      child: Text(
+                        "Belum ada curhatan",
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _posts.length,
+                      itemBuilder: (context, index) {
+                        return buildPost(_posts[index], index);
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 
 class UploadImagePage extends StatefulWidget {
   @override
@@ -247,13 +386,14 @@ class _UploadImagePageState extends State<UploadImagePage> {
   }
 }
 
+
 class NotificationPage extends StatefulWidget {
   @override
   _NotificationPageState createState() => _NotificationPageState();
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  List<String> _imageUrls = [];
+  List<Map<String, dynamic>> _images = [];
   bool _isLoading = true;
 
   @override
@@ -264,12 +404,18 @@ class _NotificationPageState extends State<NotificationPage> {
 
   Future<void> fetchImages() async {
     try {
-      final response = await http.get(Uri.parse('https://picsum.photos/v2/list?page=1&limit=90'));
+      final response = await http.get(
+        Uri.parse('https://picsum.photos/v2/list?page=1&limit=30'),
+      );
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
         setState(() {
-          _imageUrls = data.map<String>((item) {
-            return 'https://picsum.photos/id/${item['id']}/200/200'; // Pakai ukuran aman
+          _images = data.map<Map<String, dynamic>>((item) {
+            return {
+              'url': 'https://picsum.photos/id/${item['id']}/400/400',
+              'author': item['author'],
+              'id': item['id'],
+            };
           }).toList();
           _isLoading = false;
         });
@@ -285,31 +431,82 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFC9D6E4),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("Explorer", style: TextStyle(color: Colors.black)),
-        centerTitle: true,
+      backgroundColor: Color(0xFFE5EDF5),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SearchPage()),
+                );
+              },
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.grey[600]!,
+                    width: 0.8,
+                  ),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: Colors.grey[600]),
+                    SizedBox(width: 10),
+                    Text(
+                      "Search...",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(8.0),
               child: GridView.builder(
-                itemCount: _imageUrls.length,
+                itemCount: _images.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 4,
                   mainAxisSpacing: 4,
                 ),
                 itemBuilder: (context, index) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: Image.network(
-                      _imageUrls[index],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+                  final image = _images[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetailImagePage(
+                            imageUrl: image['url'],
+                            author: image['author'],
+                            tag: 'img${image['id']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Hero(
+                      tag: 'img${image['id']}',
+                      child: Container(
+                        color: Colors.grey[300],
+                        child: Image.network(
+                          image['url'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -318,6 +515,146 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 }
+
+class DetailImagePage extends StatefulWidget {
+  final String imageUrl;
+  final String author;
+  final String tag;
+
+  const DetailImagePage({
+    Key? key,
+    required this.imageUrl,
+    required this.author,
+    required this.tag,
+  }) : super(key: key);
+
+  @override
+  _DetailImagePageState createState() => _DetailImagePageState();
+}
+
+class _DetailImagePageState extends State<DetailImagePage> {
+  bool isLiked = false;
+  int likeCount = 97;
+
+  @override
+  Widget build(BuildContext context) {
+    final String username = widget.author.toLowerCase().replaceAll(' ', '_');
+    final String caption = "Self-care bukan egois, tapi bentuk cinta diri.";
+    final String datePosted = '13 May';
+    final String profileUrl = 'https://i.pravatar.cc/150?u=$username';
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text("Explore", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.black),
+        elevation: 0.5,
+      ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Header: user info
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(profileUrl),
+                ),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.author, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text('@$username', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Image
+          Hero(
+            tag: widget.tag,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(0),
+              child: Image.network(
+                widget.imageUrl,
+                width: double.infinity,
+                height: 350,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Action bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : Colors.black,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      isLiked = !isLiked;
+                      likeCount += isLiked ? 1 : -1;
+                    });
+                  },
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.chat_bubble_outline, size: 24),
+                SizedBox(width: 12),
+                Icon(Icons.send, size: 24),
+                Spacer(),
+                Icon(Icons.bookmark_border, size: 24),
+              ],
+            ),
+          ),
+
+          // Like Count
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Liked by joyyyy_0905 and $likeCount others',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+
+          // Caption
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(color: Colors.black),
+                children: [
+                  TextSpan(text: widget.author, style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: ' $caption'),
+                ],
+              ),
+            ),
+          ),
+
+          // Date
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              datePosted,
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ),
+
+          SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -350,10 +687,9 @@ class _ProfilePageState extends State<ProfilePage> {
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
         setState(() {
-          // Gunakan resolusi tetap 200x200 menggunakan ID gambar
           _imageUrls = data.map<String>((item) {
             final id = item['id'].toString();
-            return 'https://picsum.photos/id/$id/200/200';
+            return 'https://picsum.photos/id/$id/300/300';
           }).toList();
           _isLoading = false;
         });
@@ -376,12 +712,12 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFC9D6E4),
+      backgroundColor: Color.fromARGB(255, 235, 235, 235),
       appBar: AppBar(
-        title: Text("Profil", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        title: Text("My Profile", style: TextStyle(color: Colors.black)),
         actions: [
           IconButton(
             icon: Icon(Icons.settings, color: Colors.black),
@@ -390,17 +726,29 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Stack(
+        child: Column(
+          children: [
+            SizedBox(height: 8),
+            Center(
+              child: Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: _profileImage != null
-                        ? FileImage(_profileImage!)
-                        : AssetImage('assets/persona 3 pc v 1.png') as ImageProvider,
+                  // Gradient Border
+                  Container(
+                    padding: EdgeInsets.all(3), // ketebalan border
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [ const Color.fromARGB(255, 139, 182, 255)!,  Colors.blueAccent!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage: _profileImage != null
+                          ? FileImage(_profileImage!)
+                          : AssetImage('assets/images/profile.png') as ImageProvider,
+                    ),
                   ),
                   Positioned(
                     bottom: 0,
@@ -413,41 +761,51 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Icon(Icons.add, color: Colors.white, size: 18),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
-              SizedBox(height: 8),
-              Text("Budi ex Madu", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("1RB Mengikuti  •  "),
-                  Text("1RB Pengikut  •  "),
-                  Text("1RB Suka"),
-                ],
-              ),
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(onPressed: () {}, child: Text("Edit Profil")),
-                  SizedBox(width: 10),
-                  TextButton(onPressed: () {}, child: Text("Bagikan Profil")),
-                ],
-              ),
-              TextButton(onPressed: () {}, child: Text("+ Tambahkan Bio")),
-              Divider(height: 30),
+            ),
+            SizedBox(height: 12),
+            Text(
+              "@budi_xmadu",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildStat("1.2K", "Following"),
+                _verticalDivider(),
+                _buildStat("3.8K", "Follower"),
+                _verticalDivider(),
+                _buildStat("8.4K", "Like"),
+              ],
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () {
+                    // Log out logic here
+                  },
+                  child: Text("Logout 📤"),
+                ),
+              ],
+            ),
+            Divider(height: 30),
 
-              // GridView untuk gambar dari API
-              _isLoading
-                  ? CircularProgressIndicator()
-                  : GridView.count(
+            // Grid Image Feed
+            _isLoading
+                ? CircularProgressIndicator()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: GridView.count(
                       crossAxisCount: 3,
                       shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 4,
                       mainAxisSpacing: 4,
-                      physics: NeverScrollableScrollPhysics(),
                       children: _imageUrls.map((url) {
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(6),
@@ -460,13 +818,31 @@ class _ProfilePageState extends State<ProfilePage> {
                         );
                       }).toList(),
                     ),
-            ],
-          ),
+                  ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildStat(String count, String label) {
+    return Column(
+      children: [
+        Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        SizedBox(height: 2),
+        Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _verticalDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Text("•", style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+    );
+  }
 }
+
 
 class SettingsPage extends StatelessWidget {
   void _logout(BuildContext context) {
